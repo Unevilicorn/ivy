@@ -213,7 +213,59 @@
 <span class="sd">            axis.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">ivy</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">ivy</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayWithSearching.nonzero"><a class="viewcode-back" href="../../../data_classes/array/searching/ArrayWithSearching.html#ivy.array.searching.ArrayWithSearching.nonzero">[docs]</a>    <span class="k">def</span> <span class="nf">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ivy.Array instance method variant of ivy.nonzero. This method simply</span>
+<span class="sd">        wraps the function, and so the docstring for ivy.nonzero also applies</span>
+<span class="sd">        to this method with minimal changes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        self</span>
+<span class="sd">            input array. Should have a numeric data type.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ret</span>
+<span class="sd">            Array containing the indices of the non-zero values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ivy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayWithSearching.where"><a class="viewcode-back" href="../../../data_classes/array/searching/ArrayWithSearching.html#ivy.array.searching.ArrayWithSearching.where">[docs]</a>    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span>
+        <span class="n">x1</span><span class="p">:</span> <span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span>
+        <span class="n">x2</span><span class="p">:</span> <span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">out</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ivy</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ivy.Array instance method variant of ivy.where. This method simply</span>
+<span class="sd">        wraps the function, and so the docstring for ivy.where also applies</span>
+<span class="sd">        to this method with minimal changes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        self</span>
+<span class="sd">            Where True, yield x1, otherwise yield x2.</span>
+<span class="sd">        x1</span>
+<span class="sd">            input array. Should have a numeric data type.</span>
+<span class="sd">        x2</span>
+<span class="sd">            values from which to choose when condition is False.</span>
+<span class="sd">        out</span>
+<span class="sd">            optional output array, for writing the result to. It must have a shape that</span>
+<span class="sd">            the inputs broadcast to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ret</span>
+<span class="sd">            An array with elements from self where condition is True, and elements from</span>
+<span class="sd">            x2 otherwise.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ivy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
