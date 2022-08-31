@@ -132,9 +132,10 @@
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="c1"># local</span>
 <span class="kn">import</span> <span class="nn">ivy</span>
@@ -209,6 +210,31 @@
     <span class="k">return</span> <span class="n">ret</span>
 
 
+<span class="c1"># Get dtypes/device of nested functions, used for unsupported and supported dtypes</span>
+<span class="k">def</span> <span class="nf">_nested_get</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">base_set</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">,</span> <span class="n">get_fn</span><span class="p">):</span>
+    <span class="n">visited</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">to_visit</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">base_set</span>
+
+    <span class="k">while</span> <span class="n">to_visit</span><span class="p">:</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">to_visit</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">visited</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">visited</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+        <span class="c1"># Assuming that it&#39;s set in backend or the ivy functional module</span>
+        <span class="k">if</span> <span class="s2">&quot;backend&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span> <span class="ow">or</span> <span class="s2">&quot;functional.ivy&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span><span class="p">:</span>
+            <span class="n">f_suported</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_fn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">merge_fn</span><span class="p">(</span><span class="n">f_suported</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">fl</span> <span class="o">=</span> <span class="n">_get_function_list</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">_get_functions_from_string</span><span class="p">(</span><span class="n">fl</span><span class="p">,</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span><span class="p">))</span>
+        <span class="n">to_visit</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+
 <span class="c1"># Get the list of dtypes supported by the function</span>
 <span class="c1"># by default returns the supported dtypes</span>
 <span class="k">def</span> <span class="nf">_get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">complement</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -234,31 +260,6 @@
         <span class="n">supported</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ivy</span><span class="o">.</span><span class="n">all_dtypes</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">supported</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">supported</span><span class="p">)</span>
-
-
-<span class="c1"># Get dtypes of nested functions, used for unsupported and supported dtypes</span>
-<span class="k">def</span> <span class="nf">_nested_get_dtype</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">base_set</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">,</span> <span class="n">get_dtypes</span><span class="p">):</span>
-    <span class="n">visited</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="n">to_visit</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="p">]</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">base_set</span>
-
-    <span class="k">while</span> <span class="n">to_visit</span><span class="p">:</span>
-        <span class="n">fn</span> <span class="o">=</span> <span class="n">to_visit</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">visited</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">visited</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-
-        <span class="c1"># Assuming that it&#39;s set in backend or the ivy functional module</span>
-        <span class="k">if</span> <span class="s2">&quot;backend&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span> <span class="ow">or</span> <span class="s2">&quot;functional.ivy&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span><span class="p">:</span>
-            <span class="n">f_suported</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">merge_fn</span><span class="p">(</span><span class="n">f_suported</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-            <span class="k">continue</span>
-
-        <span class="n">fl</span> <span class="o">=</span> <span class="n">_get_function_list</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">_get_functions_from_string</span><span class="p">(</span><span class="n">fl</span><span class="p">,</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span><span class="p">))</span>
-        <span class="n">to_visit</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">out</span>
 
 
 <span class="c1"># Array API Standard #</span>
@@ -1500,7 +1501,7 @@
 <span class="sd">    fn</span>
 <span class="sd">        The function to check for the supported dtype attribute</span>
 <span class="sd">    recurse</span>
-<span class="sd">        Whether or not to recurse into used ivy functions. Default is True.</span>
+<span class="sd">        Whether to recurse into used ivy functions. Default is True.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1519,12 +1520,13 @@
 <span class="s2">             exist in a particular backend&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">supported_dtypes</span> <span class="o">=</span> <span class="n">_get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">complement</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">supported_dtypes</span><span class="p">)</span>
+    <span class="n">supported_dtypes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">complement</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">_nested_get_dtype</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">,</span> <span class="n">function_supported_dtypes</span><span class="p">)</span>
+        <span class="n">supported_dtypes</span> <span class="o">=</span> <span class="n">_nested_get</span><span class="p">(</span>
+            <span class="n">fn</span><span class="p">,</span> <span class="n">supported_dtypes</span><span class="p">,</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">,</span> <span class="n">function_supported_dtypes</span>
+        <span class="p">)</span>
 
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">supported_dtypes</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="function_unsupported_dtypes"><a class="viewcode-back" href="../../../../functional/ivy/data_type/function_unsupported_dtypes/function_unsupported_dtypes_functional.html#ivy.functional.ivy.data_type.function_unsupported_dtypes">[docs]</a><span class="nd">@handle_nestable</span>
@@ -1536,7 +1538,7 @@
 <span class="sd">    fn</span>
 <span class="sd">        The function to check for the unsupported dtype attribute</span>
 <span class="sd">    recurse</span>
-<span class="sd">        Whether or not to recurse into used ivy functions. Default is True.</span>
+<span class="sd">        Whether to recurse into used ivy functions. Default is True.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1556,12 +1558,13 @@
 <span class="s2">             exist in a particular backend&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">unsupported_dtypes</span> <span class="o">=</span> <span class="n">_get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">complement</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">unsupported_dtypes</span><span class="p">)</span>
+    <span class="n">unsupported_dtypes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_get_dtypes</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">complement</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">_nested_get_dtype</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">,</span> <span class="n">function_unsupported_dtypes</span><span class="p">)</span>
+        <span class="n">unsupported_dtypes</span> <span class="o">=</span> <span class="n">_nested_get</span><span class="p">(</span>
+            <span class="n">fn</span><span class="p">,</span> <span class="n">unsupported_dtypes</span><span class="p">,</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">,</span> <span class="n">function_unsupported_dtypes</span>
+        <span class="p">)</span>
 
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">unsupported_dtypes</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="invalid_dtype"><a class="viewcode-back" href="../../../../functional/ivy/data_type/invalid_dtype.html#ivy.functional.ivy.data_type.invalid_dtype">[docs]</a><span class="k">def</span> <span class="nf">invalid_dtype</span><span class="p">(</span><span class="n">dtype_in</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ivy</span><span class="o">.</span><span class="n">Dtype</span><span class="p">,</span> <span class="n">ivy</span><span class="o">.</span><span class="n">NativeDtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
