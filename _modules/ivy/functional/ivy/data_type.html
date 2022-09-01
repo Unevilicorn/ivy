@@ -211,7 +211,7 @@
 
 
 <span class="c1"># Get dtypes/device of nested functions, used for unsupported and supported dtypes</span>
-<span class="k">def</span> <span class="nf">_nested_get</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">base_set</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">,</span> <span class="n">get_fn</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_nested_get</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">base_set</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">,</span> <span class="n">get_fn</span><span class="p">,</span> <span class="n">wrapper</span><span class="o">=</span><span class="nb">set</span><span class="p">):</span>
     <span class="n">visited</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">to_visit</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="p">]</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">base_set</span>
@@ -224,7 +224,7 @@
 
         <span class="c1"># Assuming that it&#39;s set in backend or the ivy functional module</span>
         <span class="k">if</span> <span class="s2">&quot;backend&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span> <span class="ow">or</span> <span class="s2">&quot;functional.ivy&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__module__</span><span class="p">:</span>
-            <span class="n">f_suported</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_fn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="n">f_suported</span> <span class="o">=</span> <span class="n">wrapper</span><span class="p">(</span><span class="n">get_fn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">merge_fn</span><span class="p">(</span><span class="n">f_suported</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
             <span class="k">continue</span>
 
