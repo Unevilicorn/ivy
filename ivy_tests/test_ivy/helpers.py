@@ -2,10 +2,6 @@
 
 # global
 import importlib
-from contextlib import redirect_stdout
-from io import StringIO
-import sys
-import re
 import inspect
 import pytest
 import numpy as np
@@ -147,195 +143,6 @@ def _convert_vars(
             new_vars.append(var)
 
     return new_vars
-
-
-# function that trims white spaces from docstrings
-def trim(*, docstring):
-    """Trim function from PEP-257"""
-    if not docstring:
-        return ""
-    # Convert tabs to spaces (following the normal Python rules)
-    # and split into a list of lines:
-    lines = docstring.expandtabs().splitlines()
-    # Determine minimum indentation (first line doesn't count):
-    indent = sys.maxsize
-    for line in lines[1:]:
-        stripped = line.lstrip()
-        if stripped:
-            indent = min(indent, len(line) - len(stripped))
-    # Remove indentation (first line is special):
-    trimmed = [lines[0].strip()]
-    if indent < sys.maxsize:
-        for line in lines[1:]:
-            trimmed.append(line[indent:].rstrip())
-    # Strip off trailing and leading blank lines:
-    while trimmed and not trimmed[-1]:
-        trimmed.pop()
-    while trimmed and not trimmed[0]:
-        trimmed.pop(0)
-
-    # Current code/unittests expects a line return at
-    # end of multiline docstrings
-    # workaround expected behavior from unittests
-    if "\n" in docstring:
-        trimmed.append("")
-
-    # Return a single string:
-    return "\n".join(trimmed)
-
-
-def docstring_examples_run(
-    *, fn, from_container=False, from_array=False, num_sig_fig=3
-):
-    """Performs docstring tests for a given function.
-
-    Parameters
-    ----------
-    fn
-        Callable function to be tested.
-    from_container
-        if True, check docstring of the function as a method of an Ivy Container.
-    from_array
-        if True, check docstring of the function as a method of an Ivy Array.
-    num_sig_fig
-        Number of significant figures to check in the example.
-
-    Returns
-    -------
-    None if the test passes, else marks the test as failed.
-    """
-    if not hasattr(fn, "__name__"):
-        return True
-    fn_name = fn.__name__
-    if fn_name not in ivy.backend_handler.ivy_original_dict:
-        return True
-
-    if from_container:
-        docstring = getattr(
-            ivy.backend_handler.ivy_original_dict["Container"], fn_name
-        ).__doc__
-    elif from_array:
-        docstring = getattr(
-            ivy.backend_handler.ivy_original_dict["Array"], fn_name
-        ).__doc__
-    else:
-        docstring = ivy.backend_handler.ivy_original_dict[fn_name].__doc__
-
-    if docstring is None:
-        return True
-
-    # removing extra new lines and trailing white spaces from the docstrings
-    trimmed_docstring = trim(docstring=docstring)
-    trimmed_docstring = trimmed_docstring.split("\n")
-
-    # end_index: -1, if print statement is not found in the docstring
-    end_index = -1
-
-    # parsed_output is set as an empty string to manage functions with multiple inputs
-    parsed_output = ""
-
-    # parsing through the docstrings to find lines with print statement
-    # following which is our parsed output
-    sub = ">>> print("
-    for index, line in enumerate(trimmed_docstring):
-        if sub in line:
-            end_index = trimmed_docstring.index("", index)
-            p_output = trimmed_docstring[index + 1 : end_index]
-            p_output = ("").join(p_output).replace(" ", "")
-            if parsed_output != "":
-                parsed_output += ","
-            parsed_output += p_output
-
-    if end_index == -1:
-        return True
-
-    executable_lines = [
-        line.split(">>>")[1][1:] for line in docstring.split("\n") if ">>>" in line
-    ]
-
-    # noinspection PyBroadException
-    f = StringIO()
-    with redirect_stdout(f):
-        for line in executable_lines:
-            # noinspection PyBroadException
-            try:
-                if f.getvalue() != "" and f.getvalue()[-2] != ",":
-                    print(",")
-                exec(line)
-            except Exception as e:
-                print(e, " ", ivy.current_backend_str(), " ", line)
-
-    output = f.getvalue()
-    output = output.rstrip()
-    output = output.replace(" ", "").replace("\n", "")
-    output = output.rstrip(",")
-
-    # handling cases when the stdout contains ANSI colour codes
-    # 7-bit C1 ANSI sequences
-    ansi_escape = re.compile(
-        r"""
-    \x1B  # ESC
-    (?:   # 7-bit C1 Fe (except CSI)
-        [@-Z\\-_]
-    |     # or [ for CSI, followed by a control sequence
-        \[
-        [0-?]*  # Parameter bytes
-        [ -/]*  # Intermediate bytes
-        [@-~]   # Final byte
-    )
-    """,
-        re.VERBOSE,
-    )
-
-    output = ansi_escape.sub("", output)
-
-    # print("Output: ", output)
-    # print("Putput: ", parsed_output)
-
-    # assert output == parsed_output, "Output is unequal to the docstrings output."
-    sig_fig = float("1e-" + str(num_sig_fig))
-    numeric_pattern = re.compile(
-        r"""
-            [\{\}\(\)\[\]]|\w+:
-        """,
-        re.VERBOSE,
-    )
-    num_output = output.replace("ivy.array", "")
-    num_output = numeric_pattern.sub("", num_output)
-    num_parsed_output = parsed_output.replace("ivy.array", "")
-    num_parsed_output = numeric_pattern.sub("", num_parsed_output)
-    num_output = num_output.split(",")
-    num_parsed_output = num_parsed_output.split(",")
-    docstr_result = True
-    for (doc_u, doc_v) in zip(num_output, num_parsed_output):
-        try:
-            docstr_result = np.allclose(
-                np.nan_to_num(complex(doc_u)),
-                np.nan_to_num(complex(doc_v)),
-                rtol=sig_fig,
-            )
-        except Exception:
-            if str(doc_u) != str(doc_v):
-                docstr_result = False
-        if not docstr_result:
-            print(
-                "output for ",
-                fn_name,
-                " on run: ",
-                output,
-                "\noutput in docs :",
-                parsed_output,
-                "\n",
-                doc_u,
-                " != ",
-                doc_v,
-                "\n",
-            )
-            ivy.warn(
-                "Output is unequal to the docstrings output: %s" % fn_name, stacklevel=0
-            )
-            break
-    return docstr_result
 
 
 def var_fn(x, *, dtype=None, device=None):
@@ -537,7 +344,7 @@ def floats(
         )
 
     else:
-        if ivy.exists(min_value):
+        if min_value is not None:
             if min_value > -lim_float16 * safety_factor and (
                 width == 16 or not ivy.exists(width)
             ):
@@ -551,7 +358,7 @@ def floats(
         else:
             dtype_min = draw(st.sampled_from(ivy_np.valid_float_dtypes))
 
-        if ivy.exists(max_value):
+        if max_value is not None:
             if max_value < lim_float16 * safety_factor and (
                 width == 16 or not ivy.exists(width)
             ):
@@ -789,7 +596,7 @@ def value_test(
     ret_np_flat
         A list (flattened) containing Numpy arrays. Return from the
         framework to test.
-    ret_from_np_flat
+    ret_np_from_gt_flat
         A list (flattened) containing Numpy arrays. Return from the ground
         truth framework.
     rtol
@@ -2724,12 +2531,12 @@ def subsets(draw, *, elements):
 
 
 @st.composite
-def array_and_indices(
+def array_n_indices_n_axis(
     draw,
     *,
     array_dtypes,
     indices_dtypes=ivy_np.valid_int_dtypes,
-    last_dim_same_size=True,
+    disable_random_axis=False,
     boolean_mask=False,
     allow_inf=False,
     min_num_dims=1,
@@ -2747,16 +2554,10 @@ def array_and_indices(
         list of data type to draw the array dtype from.
     indices_dtypes
         list of data type to draw the indices dtype from.
-    last_dim_same_size
-        True:
-            The shape of the indices array is the exact same as the shape of the values
-            array.
-        False:
-            The last dimension of the second array is generated from a range of
-            (0 -> dimension size of first array). This results in output shapes such as
-            x = (5,5,5,5,5) & indices = (5,5,5,5,3) or x = (7,7) & indices = (7,2)
+    disable_random_axis
+        axis is set to -1 when True. Randomly generated with hypothesis if False.
     allow_inf
-        True: inf values are allowed to be generated in the values array
+        inf values are allowed to be generated in the values array when True.
     min_num_dims
         The minimum number of dimensions the arrays can have.
     max_num_dims
@@ -2774,39 +2575,45 @@ def array_and_indices(
     Examples
     --------
     @given(
-        array_and_indices=array_and_indices(
-            last_dim_same_size= False
+        array_n_indices_n_axis=array_n_indices_n_axis(
+            array_dtypes=helpers.get_dtypes("valid"),
+            indices_dtypes=helpers.get_dtypes("integer"),
+            boolean_mask=False,
             min_num_dims=1,
             max_num_dims=5,
             min_dim_size=1,
             max_dim_size=10
             )
     )
-    @given(
-        array_and_indices=array_and_indices( last_dim_same_size= True)
-    )
     """
-    x_num_dims = draw(ints(min_value=min_num_dims, max_value=max_num_dims))
-    x_dim_size = draw(ints(min_value=min_dim_size, max_value=max_dim_size))
-    x_dtype, x, indices_shape = draw(
+    x_dtype, x, x_shape = draw(
         dtype_and_values(
             available_dtypes=array_dtypes,
             allow_inf=allow_inf,
             ret_shape=True,
-            min_num_dims=x_num_dims,
-            max_num_dims=x_num_dims,
-            min_dim_size=x_dim_size,
-            max_dim_size=x_dim_size,
+            min_num_dims=min_num_dims,
+            max_num_dims=max_num_dims,
+            min_dim_size=min_dim_size,
+            max_dim_size=max_dim_size,
         )
     )
-    if not last_dim_same_size:
-        indices_dim_size = draw(ints(min_value=1, max_value=x_dim_size))
-        indices_shape[-1] = indices_dim_size
+    if disable_random_axis:
+        axis = -1
+    else:
+        axis = draw(
+            ints(
+                min_value=-1 * len(x_shape),
+                max_value=len(x_shape) - 1,
+            )
+        )
     if boolean_mask:
         indices_dtype, indices = draw(
             dtype_and_values(
                 dtype=["bool"],
-                shape=indices_shape,
+                min_num_dims=min_num_dims,
+                max_num_dims=max_num_dims,
+                min_dim_size=min_dim_size,
+                max_dim_size=max_dim_size,
             )
         )
     else:
@@ -2815,11 +2622,14 @@ def array_and_indices(
                 available_dtypes=indices_dtypes,
                 allow_inf=False,
                 min_value=0,
-                max_value=max(indices_shape[-1] - 1, 0),
-                shape=indices_shape,
+                max_value=max(x_shape[axis] - 1, 0),
+                min_num_dims=min_num_dims,
+                max_num_dims=max_num_dims,
+                min_dim_size=min_dim_size,
+                max_dim_size=max_dim_size,
             )
         )
-    return [x_dtype, indices_dtype], x, indices
+    return [x_dtype, indices_dtype], x, indices, axis
 
 
 def _zeroing_and_casting(x, cast_type):
@@ -3459,7 +3269,7 @@ def num_positional_args_from_fn(draw, *, fn):
     draw
         special function that draws data randomly (but is reproducible) from a given
         data-set (ex. list).
-    fn_name
+    fn
         name of the function.
 
     Returns
@@ -3776,4 +3586,4 @@ def array_and_broadcastable_shape(draw, dtype):
         .filter(lambda s: broadcast_shapes(in_shape, s) == s),
         label="shape",
     )
-    return (x, to_shape)
+    return x, to_shape
