@@ -1,4 +1,5 @@
 # global
+from numbers import Number
 from typing import Union, Optional
 
 import numpy as np
@@ -72,6 +73,7 @@ def add(
     x2: Union[float, np.ndarray],
     /,
     *,
+    alpha: Optional[Number] = 1,
     out: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     x1, x2 = ivy.promote_types_of_inputs(x1, x2)

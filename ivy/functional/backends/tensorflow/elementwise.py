@@ -1,4 +1,5 @@
 # global
+from numbers import Number
 from typing import Union, Optional
 
 import tensorflow as tf
@@ -51,6 +52,7 @@ def add(
     x2: Union[float, tf.Tensor, tf.Variable],
     /,
     *,
+    alpha: Optional[Number] = 1,
     out: Optional[Union[tf.Tensor, tf.Variable]] = None,
 ) -> Union[tf.Tensor, tf.Variable]:
     x1, x2 = ivy.promote_types_of_inputs(x1, x2)

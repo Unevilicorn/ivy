@@ -1,6 +1,8 @@
 # global
-import torch
+from numbers import Number
 from typing import Union, Optional
+
+import torch
 
 # local
 import ivy
@@ -17,6 +19,7 @@ def add(
     x2: Union[float, torch.Tensor],
     /,
     *,
+    alpha: Optional[Number] = 1,
     out: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     x1, x2 = ivy.promote_types_of_inputs(x1, x2)

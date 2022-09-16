@@ -267,6 +267,7 @@ def add(
     x2: Union[float, ivy.Array, ivy.NativeArray],
     /,
     *,
+    alpha: Optional[Number] = 1,
     out: Optional[ivy.Array] = None,
 ) -> ivy.Array:
     """Calculates the sum for each element ``x1_i`` of the input array ``x1`` with the
@@ -318,6 +319,8 @@ def add(
     x2
         second input array. Must be compatible with ``x1`` (see :ref:`broadcasting`).
         Should have a numeric data type.
+    alpha
+        optional scalar multiplier for ``x2``. Should have a numeric data type.
     out
         optional output array, for writing the result to. It must have a shape that the
         inputs broadcast to.
@@ -392,7 +395,7 @@ def add(
                       [8.1, 9.3, 3.4]])
     }
     """
-    return ivy.current_backend(x1, x2).add(x1, x2, out=out)
+    return ivy.current_backend(x1, x2).add(x1, x2, alpha=alpha, out=out)
 
 
 @to_native_arrays_and_back

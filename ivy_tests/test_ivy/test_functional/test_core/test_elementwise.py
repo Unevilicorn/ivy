@@ -129,11 +129,13 @@ def test_acos(
     dtype_and_x=helpers.dtype_and_values(
         available_dtypes=helpers.get_dtypes("numeric"), num_arrays=2
     ),
+    alpha=helpers.floats(),
     num_positional_args=helpers.num_positional_args(fn_name="add"),
 )
 def test_add(
     *,
     dtype_and_x,
+    alpha,
     as_variable,
     with_out,
     num_positional_args,
@@ -156,6 +158,7 @@ def test_add(
         fn_name="add",
         x1=np.asarray(x[0], dtype=input_dtype[0]),
         x2=np.asarray(x[1], dtype=input_dtype[1]),
+        alpha=alpha,
     )
 
 

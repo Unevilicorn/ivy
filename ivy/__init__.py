@@ -1,20 +1,22 @@
 # global
+import warnings
 from typing import Union
-import jax.numpy as jnp
+
 import jax
+import jax.numpy as jnp
 import jaxlib
-from jaxlib.xla_extension import Buffer
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.types.core import Tensor
-from tensorflow.python.framework.tensor_shape import TensorShape
 import torch
-import warnings
+from jaxlib.xla_extension import Buffer
+from tensorflow.python.framework.tensor_shape import TensorShape
+from tensorflow.python.types.core import Tensor
 
 warnings.filterwarnings("ignore", module="^(?!.*ivy).*$")
 
 # local
 from .assertions import check_any, check_elem_in_list, check_isinstance
+
 
 # class placeholders
 
@@ -40,17 +42,13 @@ NativeArray = Union[
     torch.Tensor,
 ]
 
-
 NativeVariable = Union[
     jax.interpreters.xla._DeviceArray, np.ndarray, Tensor, torch.Tensor
 ]
 
-
 NativeDevice = Union[jaxlib.xla_extension.Device, str, torch.device]
 
-
 NativeDtype = Union[jnp.dtype, np.dtype, tf.DType, torch.dtype, str]
-
 
 NativeShape = Union[tuple, TensorShape, torch.Size]
 
@@ -72,7 +70,11 @@ class Device(str):
         if dev_str != "":
             ivy.assertions.check_elem_in_list(dev_str[0:3], ["gpu", "tpu", "cpu"])
             if dev_str != "cpu":
-                ivy.assertions.check_equal(dev_str[3], ":")
+                assert dev_str[3] == ":"
+                ivy.assertions.check_true(
+                    dev_str[3] == ":",
+                    message="none cpu device must be of the form 'device:idx'",
+                )
                 ivy.assertions.check_true(
                     dev_str[4:].isnumeric(),
                     message="{} must be numeric".format(dev_str[4:]),
@@ -140,15 +142,12 @@ array_decimal_values_stack = list()
 warning_level_stack = list()
 warn_to_regex = {"all": "!.*", "ivy_only": "^(?!.*ivy).*$", "none": ".*"}
 
-
 # global constants
 _MIN_DENOMINATOR = 1e-12
 _MIN_BASE = 1e-5
 
-
 # local
 import threading
-
 
 # data types
 int8 = IntDtype("int8")
@@ -393,7 +392,6 @@ extra_promotion_table = {
 
 promotion_table = {**array_api_promotion_table, **extra_promotion_table}
 
-
 from .array import Array, Variable, add_ivy_array_instance_methods
 from .array.conversions import *
 from .array import conversions as arr_conversions
@@ -498,7 +496,6 @@ add_ivy_container_instance_methods(
     ],
 )
 
-
 add_ivy_container_instance_methods(
     Container,
     [
@@ -525,7 +522,6 @@ add_ivy_container_instance_methods(
     static=True,
 )
 
-
 backend = "none"
 
 native_inplace_support = None
@@ -534,6 +530,7 @@ supports_gradients = None
 
 if "IVY_BACKEND" in os.environ:
     ivy.set_backend(os.environ["IVY_BACKEND"])
+
 
 # Array Significant Figures #
 

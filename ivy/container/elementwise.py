@@ -1,4 +1,5 @@
 # global
+from numbers import Number
 from typing import Optional, Union, List, Dict
 
 # local
@@ -321,6 +322,7 @@ class ContainerWithElementwise(ContainerBase):
         x2: Union[ivy.Array, ivy.NativeArray, ivy.Container],
         /,
         *,
+        alpha: Optional[Number] = 1.0,
         key_chains: Optional[Union[List[str], Dict[str, str]]] = None,
         to_apply: bool = True,
         prune_unapplied: bool = False,
@@ -339,6 +341,8 @@ class ContainerWithElementwise(ContainerBase):
         x2
             second input array or container. Must be compatible with ``x1``
             (see :ref:`broadcasting`). Should have a numeric data type.
+        alpha
+            optional scalar multiplier for ``x2``. Default is 1.0.
         key_chains
             The key-chains to apply or not apply the method to. Default is None.
         to_apply
@@ -395,6 +399,7 @@ class ContainerWithElementwise(ContainerBase):
             "add",
             x1,
             x2,
+            alpha=alpha,
             key_chains=key_chains,
             to_apply=to_apply,
             prune_unapplied=prune_unapplied,
@@ -466,6 +471,7 @@ class ContainerWithElementwise(ContainerBase):
         x2: Union[ivy.Container, ivy.Array, ivy.NativeArray],
         /,
         *,
+        alpha: Optional[Number] = 1,
         key_chains: Optional[Union[List[str], Dict[str, str]]] = None,
         to_apply: bool = True,
         prune_unapplied: bool = False,
@@ -484,6 +490,8 @@ class ContainerWithElementwise(ContainerBase):
         x2
             second input array or container. Must be compatible with ``self``
             (see :ref:`broadcasting`). Should have a numeric data type.
+        alpha
+            optional scalar multiplier for ``x2``. Default is 1.0.
         key_chains
             The key-chains to apply or not apply the method to. Default is None.
         to_apply
@@ -522,6 +530,7 @@ class ContainerWithElementwise(ContainerBase):
         return self.static_add(
             self,
             x2,
+            alpha=alpha,
             key_chains=key_chains,
             to_apply=to_apply,
             prune_unapplied=prune_unapplied,
